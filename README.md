@@ -223,4 +223,8 @@ on_restart do
 end
 
 ```
-
+Run puma
+```
+systemctl start  puma.service
+systemctl enable  puma.service
+```
