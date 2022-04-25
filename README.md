@@ -228,3 +228,62 @@ Run puma
 systemctl start  puma.service
 systemctl enable  puma.service
 ```
+Step 3: Config nginx
+
+sudo apt install nginx
+sudo ufw allow 'Nginx HTTP'
+sudo ufw status
+systemctl status nginx
+sudo systemctl start nginx
+sudo systemctl restart nginx
+
+Create file: touch /etc/nginx/sites-available/your_domain
+edit
+
+```
+upstream puma {
+   # Path to Puma SOCK file, as defined previously
+  server unix:/var/www/one_page_server/shared/tmp/sockets/puma.sock fail_timeout=0;
+}
+
+server {
+   server_name localhost 127.0.0.1 ip(vps)  domain;
+   #index index.html;
+   root /var/www/one_page_server/current/public;
+
+  location ^~ /assets/ {
+    gzip_static on;
+    expires max;
+    add_header Cache-Control public;
+  }
+
+   try_files $uri/index.html $uri @puma;
+
+   location @puma { # use ssl
+     proxy_pass http://puma;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header Host $http_host;
+     proxy_set_header  X-Forwarded-Ssl on;
+     proxy_set_header  X-Forwarded-Port $server_port;
+     proxy_redirect off;
+    # proxy_set_header Upgrade $http_upgrade;
+    # proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # proxy_set_header Connection "upgrade";
+    # proxy_set_header Host $host;
+  }
+
+   location ~ ^/(assets|fonts|system)/|favicon.ico|robots.txt {
+     gzip_static on;
+     expires max;
+     add_header Cache-Control public;
+   }
+
+   error_page 404 /404.html;
+     location /404.html {
+       root /var/www/one_page_server/current/public/;
+       try_files /404.html =404;
+     }
+
+   error_page 500 502 503 504 /50x.html;
+ }
+```
